@@ -11,7 +11,7 @@ class Analyzer:
         self.against = against
         self.timeframe = timeframe
 
-        self.start = dt.datetime(2018, 1, 1)
+        self.start = dt.datetime(2017, 1, 1)
         self.end = dt.datetime.now()
 
         data = web.DataReader(f'{self.crypto}-{self.against}', 'yahoo', self.start, self.end)
@@ -69,3 +69,18 @@ class Analyzer:
         ax2.tick_params(axis='y', color='white')
 
         plt.show()
+
+    def predict(self):
+        overbought = len(self.combined['RSI'][lambda x: x >= 70])  # will decrease
+        oversold = len(self.combined['RSI'][lambda x: x <= 30])  # will increase
+
+        if oversold == 0:
+            return -1
+
+        if overbought == 0:
+            return 1
+
+        if overbought > oversold:
+            return -1 * (overbought / (oversold + overbought))
+        else:
+            return oversold / (oversold + overbought)

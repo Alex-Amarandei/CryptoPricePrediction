@@ -23,11 +23,11 @@ class Analyzer:
         self.days = days
 
         self.client = tweepy.Client(
-                                bearer_token='AAAAAAAAAAAAAAAAAAAAAEe6XwEAAAAAPogu71snTvhKNPhyHw0dBx3Tgv4%3DziWKDL2YeFv5MexM9Q0U22xENU7GaeSj3v3OPVGPhC0iRKIj8G',
-                                consumer_key='xnHWjwH9gDKhGGEdrtsUR63tm',
-                                consumer_secret='z6A02iii5xj5LWxiJqw1TVAIdKJ2NUy96g3J8DaYPpvdgIksxu',
-                                access_token='1480221859916484608-zYLRVdNRtf8ojX1yLRuntz4yZE029D',
-                                access_token_secret='nylyIvtQgnvA9zODUo3GE8DfIrdfUGCZmzDbHR3vk9lCD')
+            bearer_token='AAAAAAAAAAAAAAAAAAAAAEe6XwEAAAAAPogu71snTvhKNPhyHw0dBx3Tgv4%3DziWKDL2YeFv5MexM9Q0U22xENU7GaeSj3v3OPVGPhC0iRKIj8G',
+            consumer_key='xnHWjwH9gDKhGGEdrtsUR63tm',
+            consumer_secret='z6A02iii5xj5LWxiJqw1TVAIdKJ2NUy96g3J8DaYPpvdgIksxu',
+            access_token='1480221859916484608-zYLRVdNRtf8ojX1yLRuntz4yZE029D',
+            access_token_secret='nylyIvtQgnvA9zODUo3GE8DfIrdfUGCZmzDbHR3vk9lCD')
 
         if self.days == Fp.LAST_HOUR:
             self.interval = 0.04
@@ -35,8 +35,10 @@ class Analyzer:
             self.interval = 1
         elif self.days == Fp.LAST_THREE_DAYS:
             self.interval = 3
+        elif self.days == Fp.LAST_WEEK:
+            self.interval = 7
         else:
-            self.interval = 8
+            self.interval = 6
 
         search_term = '#' + self.crypto + ' #' + self.hashtag + ' -is:retweet lang:en'
         all_tweets = []
@@ -45,29 +47,29 @@ class Analyzer:
         for i in range(1, 20):
             date_to_fetch = date_to_fetch - timedelta(hours=self.interval)
             current_start_date = date_to_fetch.isoformat("T") + "Z"
-            tweets = self.client.search_recent_tweets(query=search_term, start_time=current_start_date, max_results=100)
-
+            tweets = self.client.search_recent_tweets(query=search_term, start_time=current_start_date,
+                                                      max_results=100)
             for tweet in tweets.data:
                 all_tweets.append(tweet.text)
 
-            self.df = pd.DataFrame(all_tweets, columns=['Tweets'])
-            self.df.drop_duplicates(subset=None, keep='first')
+        self.df = pd.DataFrame(all_tweets, columns=['Tweets'])
+        self.df.drop_duplicates(subset=None, keep='first')
 
-            self.df['Tweets'] = self.df['Tweets'].apply(lambda x: " ".join(x.lower() for x in x.split()))
-            self.df['Tweets'] = self.df['Tweets'].str.replace('[^\w\s]', '')
+        self.df['Tweets'] = self.df['Tweets'].apply(lambda x: " ".join(x.lower() for x in x.split()))
+        self.df['Tweets'] = self.df['Tweets'].str.replace('[^\w\s]', '')
 
-            self.df['Tweets'] = self.df['Tweets'].apply(lambda x: remove_emoji(x))
+        self.df['Tweets'] = self.df['Tweets'].apply(lambda x: remove_emoji(x))
 
-            stop = stopwords.words('english')
-            self.df['Tweets'] = self.df['Tweets'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
-            self.df['Tweets'] = self.df['Tweets'].apply(space)
-            self.df['Tweets'] = self.df['Tweets'].apply(self.clean_tweet)
-            self.df.head()
+        stop = stopwords.words('english')
+        self.df['Tweets'] = self.df['Tweets'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
+        self.df['Tweets'] = self.df['Tweets'].apply(space)
+        self.df['Tweets'] = self.df['Tweets'].apply(self.clean_tweet)
+        self.df.head()
 
-            self.df['Subjectivity'] = self.df['Tweets'].apply(get_subjectivity)
-            self.df['Polarity'] = self.df['Tweets'].apply(get_polarity)
-            self.df['Decision'] = self.df['Polarity'].apply(get_sentiment)
-            self.df.head()
+        self.df['Subjectivity'] = self.df['Tweets'].apply(get_subjectivity)
+        self.df['Polarity'] = self.df['Tweets'].apply(get_polarity)
+        self.df['Decision'] = self.df['Polarity'].apply(get_sentiment)
+        self.df.head()
 
     def plot(self):
         plt.style.use('fivethirtyeight')
@@ -84,6 +86,21 @@ class Analyzer:
         plt.xlabel('Decision')
         plt.ylabel('Number of tweets')
         plt.show()
+
+    def predict(self):
+        positive = self.df['Decision'].value_counts()['PZ']
+        negative = self.df['Decision'].value_counts()['NG']
+        neutral = self.df['Decision'].value_counts()['NT']
+
+        maximum = max(positive, neutral, negative)
+        percent = maximum / (positive + neutral + negative)
+
+        if maximum == positive:
+            return percent
+        elif maximum == negative:
+            return -1 * percent
+        else:
+            return 0
 
     def clean_tweet(self, tweet):
         tweet = re.sub('#' + self.crypto, self.crypto, tweet)
@@ -124,8 +141,8 @@ def get_polarity(tweet):
 
 def get_sentiment(score):
     if score < 0:
-        return 'NEGATIVE'
+        return 'NG'
     elif score == 0:
-        return 'NEUTRAL'
+        return 'NT'
     else:
-        return 'POSITIVE'
+        return 'PZ'
