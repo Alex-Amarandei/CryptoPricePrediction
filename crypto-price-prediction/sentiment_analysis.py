@@ -11,7 +11,6 @@ from nltk.corpus import stopwords
 from datetime import datetime, timedelta
 from wordcloud import WordCloud, STOPWORDS
 from fetch_period import FetchPeriod as Fp
-from tweeter_credentials import Credentials as Tc
 
 nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
 
@@ -47,8 +46,7 @@ class Analyzer:
         for i in range(1, 20):
             date_to_fetch = date_to_fetch - timedelta(hours=self.interval)
             current_start_date = date_to_fetch.isoformat("T") + "Z"
-            tweets = self.client.search_recent_tweets(query=search_term, start_time=current_start_date,
-                                                      max_results=100)
+            tweets = self.client.search_recent_tweets(query=search_term, start_time=current_start_date, max_results=100)
             for tweet in tweets.data:
                 all_tweets.append(tweet.text)
 

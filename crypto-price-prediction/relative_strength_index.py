@@ -74,12 +74,6 @@ class Analyzer:
         overbought = len(self.combined['RSI'][lambda x: x >= 70])  # will decrease
         oversold = len(self.combined['RSI'][lambda x: x <= 30])  # will increase
 
-        if oversold == 0:
-            return -1
-
-        if overbought == 0:
-            return 1
-
         if overbought > oversold:
             return -1 * (overbought / (oversold + overbought))
         else:

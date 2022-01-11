@@ -73,9 +73,9 @@ class Analyzer:
 
     def plot(self, sentiment=0, rsi=0, mamacd=0):
         for i in range(0, len(self.prediction_prices)):
-            self.prediction_prices[i] += 0.02 * self.prediction_prices[i] * (sentiment + rsi + mamacd)
+            self.prediction_prices[i] += (0.2 * self.prediction_prices[i] * sentiment) + (0.2 * self.prediction_prices[i] * rsi) + (0.2 * self.prediction_prices[i] * mamacd)
 
-        plt.plot(self.actual_prices, color='black', label='Actual Prices')
+        # plt.plot(self.actual_prices, color='black', label='Actual Prices')
         plt.plot(self.prediction_prices, color='green', label='Predicted Prices')
         plt.title(f'{self.crypto} price prediction')
         plt.xlabel('Time')
@@ -83,27 +83,3 @@ class Analyzer:
         plt.legend('upper left')
         plt.show()
 
-    def predict(self):
-        # Predict tomorrow's results
-        array_data = []
-        for i in range(1, 2):
-            real_data = [self.model_inputs[len(self.model_inputs) - self.feed_frame:len(self.model_inputs) + 1, 0]]
-            real_data = np.array(real_data)
-
-            real_data = np.reshape(real_data, (real_data.shape[0], real_data.shape[1], 1))
-
-            prediction = self.model.predict(real_data)
-            prediction = self.scaler.inverse_transform(prediction)
-            array_data.append(np.array(prediction)[0])
-
-        plt.rcParams["figure.figsize"] = [7.50, 3.50]
-        plt.rcParams["figure.autolayout"] = True
-
-        x = np.array(array_data)
-        print(x)
-        y = np.array(range(0, len(x)))
-
-        plt.title("Line graph")
-        plt.plot(x, y, color="red")
-
-        plt.show()
