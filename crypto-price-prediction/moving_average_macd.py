@@ -1,21 +1,22 @@
 import numpy as np
 import pandas as pd
-from datetime import datetime
+import pandas_datareader as web
 import matplotlib.pyplot as plt
+
+import datetime as dt
 
 
 class Analyzer:
-    def __init__(self, timeframe):
-        self.df = pd.read_csv('Binance_ETH.csv')
-        self.df = self.df.set_index(pd.DatetimeIndex(self.df['date'].values))
-        self.df.drop('unix', axis=1, inplace=True)
-        self.df.drop('symbol', axis=1, inplace=True)
-        self.df.drop('tradecount', axis=1, inplace=True)
-        self.df.drop('Volume USDT', axis=1, inplace=True)
+    def __init__(self, ticker, against, timeframe):
+        self.ticker = ticker
+        self.against = against
+        self.timeframe = timeframe
 
-        shortEMA = self.df['close'].ewm(span=12, adjust=False).mean()
-        longEMA = self.df['close'].ewm(span=26, adjust=False).mean()
-        period = int(timeframe / 5)
+        self.df = web.DataReader(f'{self.ticker}-{self.against}', 'yahoo', dt.datetime(2017, 1, 1), dt.datetime.now())
+
+        shortEMA = self.df['Adj Close'].ewm(span=12, adjust=False).mean()
+        longEMA = self.df['Adj Close'].ewm(span=26, adjust=False).mean()
+        period = int(self.timeframe / 5)
 
         self.df['SMA'] = SMA(self.df, period)
 
@@ -29,7 +30,7 @@ class Analyzer:
 
     def plot(self):
         plt.figure(figsize=(12.2, 4.5))
-        plt.plot(self.df.index, self.MACD, label="ETH MACD", color='red')
+        plt.plot(self.df.index, self.MACD, label="MACD", color='red')
         plt.plot(self.df.index, self.signal, label='Signal Line', color='blue')
         plt.legend(loc='upper left')
         plt.show()
@@ -64,7 +65,7 @@ class Analyzer:
         return sum
 
 
-def SMA(data, period, column='close'):
+def SMA(data, period, column='Adj Close'):
     return data[column].rolling(window=period).mean()
 
 
@@ -74,11 +75,11 @@ def strategyMovingAverage(df):
     buy_price = 0
 
     for i in range(0, len(df)):
-        if df['SMA'][i] > df['close'][i] and flag == 0:
+        if df['SMA'][i] > df['Adj Close'][i] and flag == 0:
             tags.append('PZ')
-            buy_price = df['close'][i]
+            buy_price = df['Adj Close'][i]
             flag = 1
-        elif df['SMA'][i] < df['close'][i] and flag == 1 and buy_price < df['close'][i]:
+        elif df['SMA'][i] < df['Adj Close'][i] and flag == 1 and buy_price < df['Adj Close'][i]:
             tags.append('NG')
             buy_price = 0
             flag = 0
