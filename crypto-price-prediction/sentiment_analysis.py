@@ -10,13 +10,12 @@ from textblob import TextBlob
 from nltk.corpus import stopwords
 from datetime import datetime, timedelta
 from wordcloud import WordCloud, STOPWORDS
-from fetch_period import FetchPeriod as Fp
 
 nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
 
 
 class Analyzer:
-    def __init__(self, crypto, hashtag, days=Fp.LAST_WEEK):
+    def __init__(self, crypto, hashtag, days=6):
         self.crypto = crypto
         self.hashtag = hashtag
         self.days = days
@@ -28,16 +27,7 @@ class Analyzer:
             access_token='1480221859916484608-zYLRVdNRtf8ojX1yLRuntz4yZE029D',
             access_token_secret='nylyIvtQgnvA9zODUo3GE8DfIrdfUGCZmzDbHR3vk9lCD')
 
-        if self.days == Fp.LAST_HOUR:
-            self.interval = 0.04
-        elif self.days == Fp.LAST_DAY:
-            self.interval = 1
-        elif self.days == Fp.LAST_THREE_DAYS:
-            self.interval = 3
-        elif self.days == Fp.LAST_WEEK:
-            self.interval = 7
-        else:
-            self.interval = 6
+        self.interval = 6
 
         search_term = '#' + self.crypto + ' #' + self.hashtag + ' -is:retweet lang:en'
         all_tweets = []
@@ -88,17 +78,14 @@ class Analyzer:
     def predict(self):
         positive = self.df['Decision'].value_counts()['PZ']
         negative = self.df['Decision'].value_counts()['NG']
-        neutral = self.df['Decision'].value_counts()['NT']
 
-        maximum = max(positive, neutral, negative)
-        percent = maximum / (positive + neutral + negative)
+        maximum = max(positive, negative)
+        percent = maximum / (positive + negative)
 
         if maximum == positive:
             return percent
-        elif maximum == negative:
-            return -1 * percent
         else:
-            return 0
+            return -1 * percent
 
     def clean_tweet(self, tweet):
         tweet = re.sub('#' + self.crypto, self.crypto, tweet)
@@ -138,9 +125,8 @@ def get_polarity(tweet):
 
 
 def get_sentiment(score):
-    if score < 0:
+    if score <= 0:
         return 'NG'
-    elif score == 0:
-        return 'NT'
     else:
         return 'PZ'
+
